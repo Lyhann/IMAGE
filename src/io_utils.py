@@ -1,5 +1,3 @@
-# src/io_utils.py
-
 import rasterio
 import matplotlib.pyplot as plt
 import numpy as np
@@ -7,14 +5,14 @@ import numpy as np
 
 def charger_image(chemin):
     """
-    Charge une image satellite.
+    Charge l'image satellite.
 
     Entrée :
-        chemin : chemin vers l'image
+        chemin : chemin du fichier image
 
     Sortie :
-        image : tableau numpy de forme (bandes, hauteur, largeur)
-        meta : métadonnées de l'image
+        image : tableau numpy (bandes, hauteur, largeur)
+        meta : métadonnées
     """
     with rasterio.open(chemin) as src:
         image = src.read()
@@ -25,13 +23,7 @@ def charger_image(chemin):
 
 def normaliser_bande(bande):
     """
-    Normalise une bande entre 0 et 1 pour un meilleur affichage.
-
-    Entrée :
-        bande : image 2D
-
-    Sortie :
-        bande_normalisee : image 2D normalisée
+    Normalise une bande entre 0 et 1 pour l'affichage.
     """
     p2, p98 = np.percentile(bande, (2, 98))
 
@@ -39,17 +31,14 @@ def normaliser_bande(bande):
         return np.zeros_like(bande, dtype=np.float32)
 
     bande = np.clip(bande, p2, p98)
-    bande_normalisee = (bande - p2) / (p98 - p2)
+    bande = (bande - p2) / (p98 - p2)
 
-    return bande_normalisee.astype(np.float32)
+    return bande.astype(np.float32)
 
 
 def afficher_image_rgb(image):
     """
-    Affiche l'image en utilisant les 3 premières bandes.
-
-    Entrée :
-        image : tableau numpy de forme (bandes, hauteur, largeur)
+    Affiche l'image avec les 3 premières bandes.
     """
     rouge = normaliser_bande(image[0])
     vert = normaliser_bande(image[1])
@@ -64,14 +53,9 @@ def afficher_image_rgb(image):
     plt.show()
 
 
-def afficher_patch(patch, position=None, indice=None):
+def afficher_patch(patch, titre="Patch"):
     """
-    Affiche un patch en RGB.
-
-    Entrées :
-        patch : tableau numpy de forme (bandes, h, w)
-        position : tuple (x, y)
-        indice : indice du patch dans la liste
+    Affiche un patch.
     """
     rouge = patch[0].astype(np.float32)
     vert = patch[1].astype(np.float32)
@@ -81,14 +65,6 @@ def afficher_patch(patch, position=None, indice=None):
 
     if image_rgb.max() > 0:
         image_rgb = image_rgb / image_rgb.max()
-
-    titre = "Patch"
-
-    if position is not None:
-        titre += f" à la position {position}"
-
-    if indice is not None:
-        titre += f" | indice {indice}"
 
     plt.figure(figsize=(4, 4))
     plt.imshow(image_rgb)

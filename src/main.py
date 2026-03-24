@@ -1,134 +1,139 @@
-# src/main.py
-
 import numpy as np
-from sklearn.model_selection import train_test_split
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import confusion_matrix, classification_report
 
 from config import (
     chemin_image,
     taille_patch,
     pas_deplacement,
-    filtrer_patches_vides,
-    seuil_noir,
-    ratio_noir_max,
     k_voisins,
-    taille_test,
-    graine_aleatoire,
-    indices_batiments,
-    indices_non_batiments
+    regions_apprentissage_batiments,
+    regions_apprentissage_non_batiments,
+    regions_evaluation_batiments
 )
 
 from io_utils import charger_image, afficher_image_rgb, afficher_patch
-from dataset import extraire_tous_les_patches
+from dataset import construire_patches_depuis_regions
 from features import extraire_caracteristiques_patch
-from model_knn import entrainer_modele_knn
 
 
-def construire_donnees_supervisees(liste_patches, indices_batiments, indices_non_batiments):
+def construire_X_y(patches_batiments, patches_non_batiments):
     """
-    Construit X et y à partir des indices choisis manuellement.
+    Construit les données d'apprentissage.
 
     Entrées :
-        liste_patches : liste des patches
-        indices_batiments : indices des patches bâtiment
-        indices_non_batiments : indices des patches non bâtiment
+        patches_batiments : liste de patches bâtiment
+        patches_non_batiments : liste de patches non bâtiment
 
     Sorties :
         X : matrice des caractéristiques
-        y : vecteur des labels
+        y : labels
     """
     X = []
     y = []
 
-    for indice in indices_batiments:
-        caracteristiques = extraire_caracteristiques_patch(liste_patches[indice])
-        X.append(caracteristiques)
+    for patch in patches_batiments:
+        vecteur = extraire_caracteristiques_patch(patch)
+        X.append(vecteur)
         y.append(1)
 
-    for indice in indices_non_batiments:
-        caracteristiques = extraire_caracteristiques_patch(liste_patches[indice])
-        X.append(caracteristiques)
+    for patch in patches_non_batiments:
+        vecteur = extraire_caracteristiques_patch(patch)
+        X.append(vecteur)
         y.append(0)
 
-    X = np.array(X)
-    y = np.array(y)
+    return np.array(X), np.array(y)
 
-    return X, y
+
+def construire_X(patches):
+    """
+    Transforme une liste de patches en matrice de caractéristiques.
+    """
+    X = []
+
+    for patch in patches:
+        vecteur = extraire_caracteristiques_patch(patch)
+        X.append(vecteur)
+
+    return np.array(X)
 
 
 def main():
-    # 1. Charger l'image
+    # 1. Chargement de l'image
     image, meta = charger_image(chemin_image)
 
     print("Shape image :", image.shape)
-    print("Meta :", meta)
+    ##print("Meta :", meta)
 
-    # 2. Afficher l'image complète
     afficher_image_rgb(image)
 
-    # 3. Découper l'image en patches
-    liste_patches, liste_positions = extraire_tous_les_patches(
-        image=image,
-        taille_patch=taille_patch,
-        pas_deplacement=pas_deplacement,
-        filtrer_vides=filtrer_patches_vides,
-        seuil_noir=seuil_noir,
-        ratio_noir_max=ratio_noir_max
+    # 2. Découpage des régions d'apprentissage
+    patches_apprentissage_batiments = construire_patches_depuis_regions(
+        image,
+        regions_apprentissage_batiments,
+        taille_patch,
+        pas_deplacement
     )
 
-    print("Nombre de patches utiles :", len(liste_patches))
-    print("Shape premier patch :", liste_patches[0].shape)
-    print("Position premier patch :", liste_positions[0])
-
-    # 4. Afficher quelques patches pour vérification
-    indices_a_tester = [100, 500, 1000, 3000, 8000]
-
-    for indice in indices_a_tester:
-        if indice < len(liste_patches):
-            afficher_patch(liste_patches[indice], liste_positions[indice], indice)
-
-    # 5. Tester l'extraction de caractéristiques sur un patch
-    patch_test = liste_patches[100]
-    vecteur_test = extraire_caracteristiques_patch(patch_test)
-
-    print("Vecteur de caractéristiques :", vecteur_test)
-    print("Taille du vecteur :", vecteur_test.shape)
-
-    # 6. Construire le dataset supervisé
-    X, y = construire_donnees_supervisees(
-        liste_patches,
-        indices_batiments,
-        indices_non_batiments
+    patches_apprentissage_non_batiments = construire_patches_depuis_regions(
+        image,
+        regions_apprentissage_non_batiments,
+        taille_patch,
+        pas_deplacement
     )
 
-    print("Shape X :", X.shape)
-    print("Shape y :", y.shape)
-    print("Labels y :", y)
+    # 3. Affichage de quelques patches d'exemple
+    if len(patches_apprentissage_batiments) > 0:
+        afficher_patch(patches_apprentissage_batiments[0], "Exemple patch apprentissage bâtiment")
 
-    # 7. Séparer apprentissage et test
-    X_entrainement, X_test, y_entrainement, y_test = train_test_split(
-        X,
-        y,
-        test_size=taille_test,
-        random_state=graine_aleatoire,
-        stratify=y
+    if len(patches_apprentissage_non_batiments) > 0:
+        afficher_patch(patches_apprentissage_non_batiments[0], "Exemple patch apprentissage non bâtiment")
+
+    print("Nombre patches apprentissage bâtiment :", len(patches_apprentissage_batiments))
+    print("Nombre patches apprentissage non bâtiment :", len(patches_apprentissage_non_batiments))
+
+    # 4. Construction des données d'apprentissage
+    X_train, y_train = construire_X_y(
+        patches_apprentissage_batiments,
+        patches_apprentissage_non_batiments
     )
 
-    # 8. Entraîner le modèle
-    modele = entrainer_modele_knn(X_entrainement, y_entrainement, k=k_voisins)
+    print("Shape X_train :", X_train.shape)
+    print("Shape y_train :", y_train.shape)
 
-    # 9. Faire les prédictions
+    # 5. Entraînement du modèle
+    modele = KNeighborsClassifier(n_neighbors=k_voisins)
+    modele.fit(X_train, y_train)
+
+    # 6. Découpage des régions d'évaluation contenant des bâtiments
+    patches_evaluation_batiments = construire_patches_depuis_regions(
+        image,
+        regions_evaluation_batiments,
+        taille_patch,
+        pas_deplacement
+    )
+
+    print("Nombre patches évaluation bâtiment :", len(patches_evaluation_batiments))
+
+    # 7. Transformation en données de test
+    X_test = construire_X(patches_evaluation_batiments)
+
+    # 8. Comme ces régions contiennent des bâtiments,
+    # on considère que les labels attendus sont 1
+    y_test = np.ones(len(X_test), dtype=int)
+
+    # 9. Prédictions
     y_prediction = modele.predict(X_test)
 
     print("y_test :", y_test)
     print("y_prediction :", y_prediction)
 
-    # 10. Évaluer le modèle
+    # 10. Évaluation
     print("\nMatrice de confusion :")
     print(confusion_matrix(y_test, y_prediction))
 
     print("\nRapport de classification :")
-    print(classification_report(y_test, y_prediction, digits=4))
+    print(classification_report(y_test, y_prediction, digits=4, zero_division=0))
 
 
 if __name__ == "__main__":

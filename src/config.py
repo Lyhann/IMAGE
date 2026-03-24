@@ -1,18 +1,25 @@
-# src/config.py
+# Paramètres généraux
 
 chemin_image = r"data/raw/image.TIF"
 
 taille_patch = 16
 pas_deplacement = 16
 
-filtrer_patches_vides = True
-seuil_noir = 0
-ratio_noir_max = 0.20
 
 k_voisins = 3
 taille_test = 0.3
 graine_aleatoire = 42
 
-# A modifier après observation visuelle des patches
-indices_batiments = [3000, 12000, 20000, 25000, 30000]
-indices_non_batiments = [100, 500, 8000, 15000, 22000]
+regions_apprentissage_batiments = [
+    (9642, 5692, 256, 256),
+    (6072, 5302, 256, 256),
+]
+
+regions_apprentissage_non_batiments = [
+    (4382, 12002, 256, 256),
+    (10742, 612, 256, 256),
+]
+regions_evaluation_batiments = [
+    (8792, 6102, 256, 256),
+    (8152, 13362, 256, 256),
+]
