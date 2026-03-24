@@ -1,0 +1,29 @@
+# Environnement virtuel
+.venv/
+env/
+venv/
+data/raw/
+data/patches/
+*.TIF
+*.tif
+*.TFW
+*.tfw
+*.SAFE
+*.zip
+__pycache__/
+
+# Données et images (souvent trop lourdes pour GitHub)
+*.JPG
+*.jpeg
+*.png
+datasets/
+
+# Dossiers générés par Python
+__pycache__/
+*.pyc
+
+# Résultats d'entraînement YOLO
+runs/
+
+# Fichiers système Mac
+.DS_Storedata/
