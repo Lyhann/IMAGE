@@ -12,8 +12,7 @@ data/patches/
 *.zip
 __pycache__/
 
-# Données et images (souvent trop lourdes pour GitHub)
-*.JPG
+# Données et images
 *.jpeg
 *.png
 datasets/
