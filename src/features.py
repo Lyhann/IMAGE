@@ -1,28 +1,17 @@
 import numpy as np
 
-
 def extraire_caracteristiques_patch(patch):
-    """
-    Transforme un patch en vecteur de caractéristiques.
-
-    Pour chaque bande :
-    - moyenne
-    - écart-type
-
-    Entrée :
-        patch : tableau (bandes, h, w)
-
-    Sortie :
-        vecteur : tableau 1D
-    """
     patch = patch.astype(np.float32)
-
-    nb_bandes = patch.shape[0]
-    patch_aplati = patch.reshape(nb_bandes, -1)
-
-    moyennes = patch_aplati.mean(axis=1)
-    ecarts_types = patch_aplati.std(axis=1)
-
-    vecteur = np.concatenate([moyennes, ecarts_types])
-
-    return vecteur
+    
+    # Statistiques classiques (Moyenne/STD par bande)
+    moyennes = patch.mean(axis=(1, 2))
+    stds = patch.std(axis=(1, 2))
+    
+    # Point n°3 : Ajout du NDVI moyen du patch
+    # Formule : (PIR - R) / (PIR + R)
+    rouge = patch[0]
+    pir = patch[3]
+    ndvi = (pir - rouge) / (pir + rouge + 1e-8)
+    ndvi_moyen = np.mean(ndvi)
+    
+    return np.concatenate([moyennes, stds, [ndvi_moyen]])
